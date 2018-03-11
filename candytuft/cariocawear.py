@@ -36,6 +36,10 @@ try:
 	url = "https://cariocawear.com/collections/sale/products/verde-green"
 	store = CARIOCAWEAR_STORE
 
+	from candytuft.repository import ProductRepository
+
+	repository = ProductRepository("./product.json")
+
 	driver.get(url)
 
 	resourceId = driver.execute_script("return window.ShopifyAnalytics.meta;")["page"]["resourceId"]
@@ -48,7 +52,10 @@ try:
 
 	for variant_json in json["variants"]:
 		product = _new_product(family, variant_json)
+		repository.put(product)
 		image = _new_product_image(family, product, variant_json["featured_image"])
+
+	repository.flush()
 
 
 finally:

@@ -31,6 +31,13 @@ class Price:
 		self.value = value
 		self.currency = currency
 
+	@staticmethod
+	def from_dict(dict: Dict[str, Any]):
+		return Price(value=dict["value"], currency=dict["currency"])
+
+	def to_dict(self) -> Dict[str, Any]:
+		return {"value": self.value, "currency": self.currency}
+
 	def __str__(self) -> str:
 		return "value={}, currency={}".format(self.value, self.currency)
 
@@ -42,9 +49,20 @@ class Product:
 		self.available = available
 		self.price = price
 
-		self.options: Dict[str, Any] = dict()
+		self.options: Dict[str, str] = dict()
 		for name, value in kwargs.items():
+			if type(value) != str:
+				raise ValueError("'{}' must be of str type".format(name))
 			self.options[name] = value
+
+	@staticmethod
+	def from_dict(dict: Dict[str, Any]):
+		return Product(id=UUID(dict["id"]), foreign_id=dict["foreign_id"], family_id=UUID(dict["family_id"]), available=dict["available"],
+			price=Price.from_dict(dict["price"]), **dict["options"])
+
+	def to_dict(self) -> Dict[str, Any]:
+		return {"id": str(self.id), "foreign_id": self.foreign_id, "family_id": str(self.family_id), "available": self.available, "price": self.price.to_dict(),
+			"options": self.options}
 
 	def __str__(self) -> str:
 		options = ", ".join(["{}={}".format(key, "'{}'".format(value) if type(value) == str else value) for (key, value) in sorted(self.options.items())])

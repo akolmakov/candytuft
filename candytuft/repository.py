@@ -5,10 +5,33 @@ from io import open
 
 import ujson
 
+from candytuft.produсt import Family, Product, Image
+
 T = TypeVar("T")
 
+
+class FilePersistence(Generic[T]):
+	def __init__(self, file_path: str, to_dict: Callable[[T], Dict], from_dict: Callable[[Dict], T]):
+		self._file_path = file_path
+		self._to_dict = to_dict
+		self._from_dict = from_dict
+
+	def load(self) -> Dict[UUID, T]:
+		try:
+			with open(self._file_path, mode="r", encoding="utf-8") as file:
+				json = ujson.load(file)
+				return {UUID(id): self._from_dict(t) for id, t in json.items()}
+		except FileNotFoundError:
+			return {}
+
+	def save(self, t_by_id: Dict[UUID, T]):
+		json = {str(id): self._to_dict(t) for id, t in t_by_id.items()}
+		with open(self._file_path, mode="w", encoding="utf-8") as file:
+			file.write(ujson.dumps(json, ensure_ascii=False))
+
+
 class Repository(Generic[T]):
-	def __init__(self, persistence: FilePersistence, resolve_id: Callable[T, UUID]):
+	def __init__(self, persistence: FilePersistence, resolve_id: Callable[[T], UUID]):
 		self._persistence = persistence
 		self._resolve_id = resolve_id
 		self._lock = RLock()
@@ -35,20 +58,7 @@ class Repository(Generic[T]):
 		finally:
 			self._lock.release()
 
-
-class FilePersistence(Generic[T]):
-	def __init__(self, file_path: str, to_dict: Callable[T, Dict], from_dict: Callable[Dict, T]):
-		self._file_path = file_path
-		self._to_dict = to_dict
-		self._from_dict = from_dict
-
-	def load(self) -> Dict[UUID, T]:
-		with open(self._file_path, mode="r", encoding="utf-8") as file:
-			json = ujson.load(file)
-			return {UUID(id): self._from_dict(t) for id, t in json.items()}
-
-	def save(self, t_by_id: Dict[UUID, T]):
-		json = {str(id): self._to_dict(t) for id, t in t_by_id.items()}
-		with open(self._file_path, mode="w", encoding="utf-8") as file:
-			ujson.dump(json, file, ensure_ascii=False)
-
+class ProductRepository(Repository[Product]):
+	def __init__(self, file_path: str):
+		persistence = FilePersistence[Product](file_path=file_path, to_dict=lambda p: p.to_dict(), from_dict=Product.from_dict)
+		super().__init__(persistence, lambda t: t.id)

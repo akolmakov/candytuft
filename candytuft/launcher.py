@@ -7,6 +7,7 @@ from flask import Flask
 
 from candytuft.cariocawear import load_families as load_cariocawear_families
 from candytuft.webapi import register_routes as register_web_api_routes
+from candytuft.config import store_repository
 
 logging.basicConfig()
 logging.getLogger("candytuft").setLevel(logging.DEBUG)
@@ -21,13 +22,15 @@ driver = Chrome(executable_path="/Users/akolmakov/chromedriver", chrome_options=
 
 
 try:
-	from candytuft.repository import FamilyRepository, ProductRepository, ImageRepository
-	family_repository = FamilyRepository("/tmp/family.json")
-	product_repository = ProductRepository("/tmp/product.json")
-	image_repository = ImageRepository("/tmp/image.json")
+	from candytuft.produсt import Family, Product, Image
+	from candytuft.persistence import FilePersistence
+	from candytuft.repository import FamilyRepository, ProductRepository, ImageRepository, persistent
+	family_repository = persistent(type=FamilyRepository, persistence=FilePersistence[Family](file_path="/tmp/family.json", to_dict=lambda f: f.to_dict(), from_dict=Family.from_dict))()
+	product_repository = persistent(type=ProductRepository, persistence=FilePersistence[Product](file_path="/tmp/product.json", to_dict=lambda p: p.to_dict(), from_dict=Product.from_dict))()
+	image_repository = persistent(type=ImageRepository, persistence=FilePersistence[Image](file_path="/tmp/image.json", to_dict=lambda i: i.to_dict(), from_dict=Image.from_dict))()
 
 	flask = Flask("candytuft")
-	register_web_api_routes(flask, family_repository, product_repository, image_repository)
+	register_web_api_routes(flask, store_repository, family_repository, product_repository, image_repository)
 	flask.run(port=8080)
 
 	bundles = load_cariocawear_families(driver)

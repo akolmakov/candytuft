@@ -2,28 +2,41 @@ import re
 import ujson
 import logging
 
-from uuid import uuid4
+from uuid import UUID, uuid4
+from typing import Dict, List, Any
 
 from selenium.webdriver import Remote
 
-from candytuft.produсt import *
+from candytuft.produсt import Family, Product, Image, Bundle
+from candytuft.config import CARIOCA_VENDOR
+from candytuft.config import CARIOCAWEAR_STORE
 
-STORE = Store(id=UUID("fd1e0b6f-9f35-4261-8bf7-4204bc7cff6a"), short_name="carioca", name="CA-RIO­CA Sunga Co.", currency="USD", url="https://cariocawear.com")
 
 logger = logging.getLogger("candytuft.cariocawear")
 
-def _new_family(store: Store, url: str, json: Dict[str, Any]) -> Family:
-	return Family(id=uuid4(), foreign_id=str(json["id"]), store_id=store.id, name=json["title"], url=url, timestamp=None)
+def _new_family(url: str, json: Dict[str, Any]) -> Family:
+	return Family(id=uuid4(), foreign_id=str(json["id"]), store_id=CARIOCAWEAR_STORE.id, vendor_id=CARIOCA_VENDOR.id, name=json["title"], url=url,
+		timestamp=None)
 
 
-def _new_product(family: Family, json: Dict[str, Any]) -> Product:
-	product = Product(id=uuid4(), foreign_id=str(json["id"]), family_id=family.id, available=json["available"], price=json["price"] / 100.0, timestamp=None,
-		cut=json["option1"], size=json["option2"])
+def _resolve_tags(products: List[Product]):
+	tags = set()
+	tags.add("swimwear")
+
+	for product in products:
+		tags.add(product.options["cut"].lower())
+
+	return tags
+
+
+def _new_product(family_id: UUID, json: Dict[str, Any]) -> Product:
+	product = Product(id=uuid4(), foreign_id=str(json["id"]), family_id=family_id, available=json["available"], price=json["price"] / 100.0, timestamp=None,
+		cut=json["option1"], size=json["option2"], sku=json["sku"])
 	return product
 
 
-def _new_product_image(family: Family, product: Product, json: Dict[str, Any]) -> Image:
-	return Image(id=uuid4(), foreign_id=str(json["id"]), family_id=family.id, product_id=product.id, url=json["src"], timestamp=None)
+def _new_product_image(family_id: UUID, product_id: UUID, json: Dict[str, Any]) -> Image:
+	return Image(id=uuid4(), foreign_id=str(json["id"]), family_id=family_id, product_id=product_id, url=json["src"], timestamp=None)
 
 
 def _load_family_urls(driver: Remote, url: str):
@@ -52,7 +65,7 @@ def _load_family_urls(driver: Remote, url: str):
 	return result
 
 
-def _load_family(driver: Remote, store: Store, url: str) -> Bundle:
+def _load_family(driver: Remote, url: str) -> Bundle:
 	builder = Bundle.builder()
 
 	driver.get(url)
@@ -64,17 +77,16 @@ def _load_family(driver: Remote, store: Store, url: str) -> Bundle:
 	element = driver.find_element_by_id("product-form-{}".format(meta["page"]["resourceId"]))
 
 	family_json = ujson.loads(element.get_attribute("data-product"))
-
-	family = _new_family(store, url, family_json)
+	family = _new_family(url, family_json)
 	builder.family(family)
 
 	for product_json in family_json["variants"]:
-		product = _new_product(family, product_json)
+		product = _new_product(family.id, product_json)
 		builder.product(product)
 
 		image_json = product_json["featured_image"]
 		if image_json:
-			builder.image(_new_product_image(family, product, image_json))
+			builder.image(_new_product_image(family.id, product.id, image_json))
 
 	bundle = builder.build()
 
@@ -85,6 +97,6 @@ def _load_family(driver: Remote, store: Store, url: str) -> Bundle:
 
 
 def load_families(driver: Remote) -> List[Bundle]:
-	family_urls = _load_family_urls(driver, STORE.url + "/collections/swimwear-sunga")
-	return [_load_family(driver, STORE, family_url) for family_url in family_urls]
+	family_urls = _load_family_urls(driver, CARIOCAWEAR_STORE.url + "/collections/swimwear-sunga")
+	return [_load_family(driver, family_url) for family_url in family_urls]
 

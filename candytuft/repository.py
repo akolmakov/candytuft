@@ -1,89 +1,96 @@
-from typing import TypeVar, Generic, Callable, Dict, List, Optional
-from uuid import UUID
 from threading import RLock
-from io import open
+from typing import Type, TypeVar, Generic, Dict, List, Optional, Callable
+from uuid import UUID
 
-import ujson
-
-from candytuft.produсt import Family, Product, Image
+from candytuft.produсt import Store, Family, Product, Image
+from candytuft.persistence import FilePersistence
 
 T = TypeVar("T")
 
-
-class FilePersistence(Generic[T]):
-	def __init__(self, file_path: str, to_dict: Callable[[T], Dict], from_dict: Callable[[Dict], T]):
-		self._file_path = file_path
-		self._to_dict = to_dict
-		self._from_dict = from_dict
-
-	def load(self) -> List[T]:
-		try:
-			with open(self._file_path, mode="r", encoding="utf-8") as file:
-				return [self._from_dict(t) for t in ujson.load(file)]
-		except FileNotFoundError:
-			return []
-
-	def save(self, ts: List[UUID]):
-		json = [self._to_dict(t) for t in ts]
-		with open(self._file_path, mode="w", encoding="utf-8") as file:
-			file.write(ujson.dumps(json, ensure_ascii=False))
-
-
 class Repository(Generic[T]):
-	def __init__(self, persistence: FilePersistence, resolve_id: Callable[[T], UUID]):
-		self._persistence = persistence
+	def __init__(self, resolve_id: Callable[[T], UUID]):
 		self._resolve_id = resolve_id
-		self._lock = RLock()
+		self._rlock = RLock()
 		self._t_by_id: Dict[UUID, T] = {}
 
-		for t in self._persistence.load():
-			self._put(t)
-
 	def put(self, t: T):
-		self._lock.acquire()
+		self._lock()
 		try:
 			self._put(t)
 		finally:
-			self._lock.release()
+			self._unlock()
 
 	def put_all(self, ts: List[T]):
-		self._lock.acquire()
+		self._lock()
 		try:
 			for t in ts:
 				self._put(t)
 		finally:
-			self._lock.release()
+			self._unlock()
+
+	def find_by_id(self, id: UUID) -> Optional[T]:
+		self._lock()
+		try:
+			return self._t_by_id.get(id)
+		finally:
+			self._unlock()
+
+	@property
+	def all(self) -> List[T]:
+		self._lock()
+		try:
+			return self._all
+		finally:
+			self._unlock()
+
+	def _lock(self):
+		self._rlock.acquire()
+
+	def _unlock(self):
+		self._rlock.release()
 
 	def _put(self, t: T):
 		self._t_by_id[self._resolve_id(t)] = t
 
-	def find_by_id(self, id: UUID) -> Optional[T]:
-		self._lock.acquire()
-		try:
-			return self._t_by_id.get(id)
-		finally:
-			self._lock.release()
+	@property
+	def _all(self):
+		return list(self._t_by_id.values())
 
-	def get_all(self) -> List[T]:
-		self._lock.acquire()
-		try:
-			return list(self._t_by_id.values())
-		finally:
-			self._lock.release()
 
-	def flush(self):
-		self._lock.acquire()
-		try:
-			return self._persistence.save(list(self._t_by_id.values()))
-		finally:
-			self._lock.release()
+def persistent(type: Type[Repository], persistence: FilePersistence):
+	class _Persistable(type):
+		def __init__(self, *args, **kwargs):
+			super().__init__(*args, **kwargs)
+			for t in persistence.load():
+				self._put(t)
+
+		def flush(self):
+			self._lock()
+			try:
+				return persistence.save(list(self._all))
+			finally:
+				self._unlock()
+
+	return _Persistable
+
+
+class StoreRepository(Repository[Store]):
+	def __init__(self):
+		self._stores_by_short_name: Dict[str, Store] = {}
+		super().__init__(lambda s: s.id)
+
+	def _put(self, store: Store):
+		super()._put(store)
+		self._stores_by_short_name[store.short_name] = store
+
+	def find_by_short_name(self, short_name) -> Optional[Store]:
+		return self._stores_by_short_name.get(short_name)
+
 
 class FamilyRepository(Repository[Family]):
-	def __init__(self, file_path: str):
+	def __init__(self):
+		super().__init__(lambda t: t.id)
 		self._families_by_store_id: Dict[UUID, List[Family]] = {}
-
-		persistence = FilePersistence[Family](file_path=file_path, to_dict=lambda f: f.to_dict(), from_dict=Family.from_dict)
-		super().__init__(persistence, lambda t: t.id)
 
 	def _put(self, family: Family):
 		super()._put(family)
@@ -94,11 +101,9 @@ class FamilyRepository(Repository[Family]):
 
 
 class ProductRepository(Repository[Product]):
-	def __init__(self, file_path: str):
+	def __init__(self):
+		super().__init__(lambda t: t.id)
 		self._products_by_family_id: Dict[UUID, List[Product]] = {}
-
-		persistence = FilePersistence[Product](file_path=file_path, to_dict=lambda p: p.to_dict(), from_dict=Product.from_dict)
-		super().__init__(persistence, lambda t: t.id)
 
 	def _put(self, product: Product):
 		super()._put(product)
@@ -109,12 +114,10 @@ class ProductRepository(Repository[Product]):
 
 
 class ImageRepository(Repository[Image]):
-	def __init__(self, file_path: str):
+	def __init__(self):
+		super().__init__(lambda t: t.id)
 		self._images_by_family_id: Dict[UUID, List[Image]] = {}
 		self._images_by_product_id: Dict[UUID, List[Image]] = {}
-
-		persistence = FilePersistence[Image](file_path=file_path, to_dict=lambda i: i.to_dict(), from_dict=Image.from_dict)
-		super().__init__(persistence, lambda t: t.id)
 
 	def _put(self, image: Image):
 		super()._put(image)

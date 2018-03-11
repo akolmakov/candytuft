@@ -8,6 +8,7 @@ setup(
 	packages=find_packages(),
 	install_requires=[
 		"selenium==3.10.0",
-		"ujson==1.35"
+		"ujson==1.35",
+		"flask=0.12.2"
 	]
 )

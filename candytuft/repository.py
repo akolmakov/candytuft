@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, Callable, Dict, Optional
+from typing import TypeVar, Generic, Callable, Dict, List, Optional
 from uuid import UUID
 from threading import RLock
 from io import open
@@ -41,6 +41,14 @@ class Repository(Generic[T]):
 		self._lock.acquire()
 		try:
 			self._t_by_id[self._resolve_id(t)] = t
+		finally:
+			self._lock.release()
+
+	def put_all(self, ts: List[T]):
+		self._lock.acquire()
+		try:
+			for t in ts:
+				self._t_by_id[self._resolve_id(t)] = t
 		finally:
 			self._lock.release()
 

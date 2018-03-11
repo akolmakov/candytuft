@@ -8,18 +8,16 @@ from selenium.webdriver import Remote
 
 from candytuft.produсt import *
 
-STORE = Store(id=UUID("fd1e0b6f-9f35-4261-8bf7-4204bc7cff6a"), short_name="carioca", name="CA-RIO­CA Sunga Co.", url="https://cariocawear.com")
+STORE = Store(id=UUID("fd1e0b6f-9f35-4261-8bf7-4204bc7cff6a"), short_name="carioca", name="CA-RIO­CA Sunga Co.", currency="USD", url="https://cariocawear.com")
 
 logger = logging.getLogger("candytuft.cariocawear")
-
 
 def _new_family(store: Store, url: str, json: Dict[str, Any]) -> Family:
 	return Family(id=uuid4(), foreign_id=str(json["id"]), store_id=store.id, name=json["title"], url=url, timestamp=None)
 
 
-def _new_product(family: Family, currency: str, json: Dict[str, Any]) -> Product:
-	price = Price(value=json["price"] / 100.0, currency=currency)
-	product = Product(id=uuid4(), foreign_id=str(json["id"]), family_id=family.id, available=json["available"], price=price, timestamp=None,
+def _new_product(family: Family, json: Dict[str, Any]) -> Product:
+	product = Product(id=uuid4(), foreign_id=str(json["id"]), family_id=family.id, available=json["available"], price=json["price"] / 100.0, timestamp=None,
 		cut=json["option1"], size=json["option2"])
 	return product
 
@@ -59,6 +57,7 @@ def _load_family(driver: Remote, store: Store, url: str) -> Bundle:
 
 	driver.get(url)
 
+	# todo: compare with store currency
 	currency = driver.execute_script("return Currency.currentCurrency;")
 
 	meta = driver.execute_script("return window.ShopifyAnalytics.meta;")
@@ -70,7 +69,7 @@ def _load_family(driver: Remote, store: Store, url: str) -> Bundle:
 	builder.family(family)
 
 	for product_json in family_json["variants"]:
-		product = _new_product(family, currency, product_json)
+		product = _new_product(family, product_json)
 		builder.product(product)
 
 		image_json = product_json["featured_image"]

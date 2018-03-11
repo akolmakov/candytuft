@@ -8,10 +8,11 @@ def _now_utc() -> int:
 
 
 class Store:
-	def __init__(self, id: UUID, short_name: str, name: str, url: str):
+	def __init__(self, id: UUID, short_name: str, name: str, currency: str, url: str):
 		self.id = id
 		self.short_name = short_name
 		self.name = name
+		self.currency = currency
 		self.url = url
 
 
@@ -37,23 +38,8 @@ class Family:
 		return "id={}, foreign_id={}, store_id={}, name='{}', url='{}', timestamp={}".format(self.id, self.foreign_id, self.store_id, self.name, self.url,
 			self.timestamp)
 
-class Price:
-	def __init__(self, value: float, currency: str):
-		self.value = value
-		self.currency = currency
-
-	@staticmethod
-	def from_dict(dict: Dict[str, Any]) -> "Price":
-		return Price(value=dict["value"], currency=dict["currency"])
-
-	def to_dict(self) -> Dict[str, Any]:
-		return {"value": self.value, "currency": self.currency}
-
-	def __str__(self) -> str:
-		return "value={}, currency={}".format(self.value, self.currency)
-
 class Product:
-	def __init__(self, id: UUID, foreign_id: str, family_id: UUID, available: bool, price: Price, timestamp: Optional[int], **kwargs):
+	def __init__(self, id: UUID, foreign_id: str, family_id: UUID, available: bool, price: float, timestamp: Optional[int], **kwargs):
 		self.id = id
 		self.foreign_id = foreign_id
 		self.family_id = family_id
@@ -70,10 +56,10 @@ class Product:
 	@staticmethod
 	def from_dict(dict: Dict[str, Any]) -> "Product":
 		return Product(id=UUID(dict["id"]), foreign_id=dict["foreign_id"], family_id=UUID(dict["family_id"]), available=dict["available"],
-			price=Price.from_dict(dict["price"]), timestamp=dict["timestamp"], **dict["options"])
+			price=dict["price"], timestamp=dict["timestamp"], **dict["options"])
 
 	def to_dict(self) -> Dict[str, Any]:
-		return {"id": str(self.id), "foreign_id": self.foreign_id, "family_id": str(self.family_id), "available": self.available, "price": self.price.to_dict(),
+		return {"id": str(self.id), "foreign_id": self.foreign_id, "family_id": str(self.family_id), "available": self.available, "price": self.price,
 			"timestamp": self.timestamp, "options": self.options}
 
 	def __str__(self) -> str:

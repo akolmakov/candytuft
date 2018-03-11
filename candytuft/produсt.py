@@ -1,33 +1,61 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 from uuid import UUID
 
+class Store:
+	def __init__(self, id: UUID, name: str, url: str):
+		self.id = id
+		self.name = name
+		self.url = url
+
+
 class Family:
-	def __init__(self, id: UUID, foreign_id: str, name: str, image: Optional[Image], url: str, **kwargs):
+	def __init__(self, id: UUID, foreign_id: str, store_id: UUID, name: str, url: str, **kwargs):
 		self.id = id
 		self.foreign_id = foreign_id
+		self.store_id = store_id
 		self.name = name
-		self.image = image
 		self.url = url
+
+		self.options: Dict[str, Any] = dict()
 		for name, value in kwargs.items():
-			setattr(self, name, value)
+			self.options[name] = value
+
+	def __str__(self) -> str:
+		options = ", ".join(["{}={}".format(key, "'{}'".format(value) if type(value) == str else value) for (key, value) in sorted(self.options.items())])
+		return "id={}, foreign_id={}, store_id={}, name='{}', url='{}', options=[{}]".format(self.id, self.foreign_id, self.store_id, self.name,
+			self.url, options)
+
+
+class Price:
+	def __init__(self, value: float, currency: str):
+		self.value = value
+		self.currency = currency
+
+	def __str__(self) -> str:
+		return "value={}, currency={}".format(self.value, self.currency)
 
 class Product:
-	def __init__(self, id: UUID, foreign_id: str, family_id: UUID, **kwargs):
+	def __init__(self, id: UUID, foreign_id: str, family_id: UUID, available: bool, price: Price, **kwargs):
 		self.id = id
 		self.foreign_id = foreign_id
 		self.family_id = family_id
+		self.available = available
+		self.price = price
+
+		self.options: Dict[str, Any] = dict()
 		for name, value in kwargs.items():
-			setattr(self, name, value)
+			self.options[name] = value
+
+	def __str__(self) -> str:
+		options = ", ".join(["{}={}".format(key, "'{}'".format(value) if type(value) == str else value) for (key, value) in sorted(self.options.items())])
+		return "id={}, foreign_id={}, family_id={}, available={}, price=[{}], options=[{}]".format(self.id, self.foreign_id, self.family_id, self.available,
+			self.price, options)
+
 
 class Image:
-	def __init__(self, id: UUID, foreign_id: Optional[str], url: str):
+	def __init__(self, id: UUID, foreign_id: Optional[str], family_id: UUID, product_id: Optional[UUID], url: str):
 		self.id = id
 		self.foreign_id = foreign_id
-		self.url = url
-
-class Price:
-	def __init__(self, id: UUID, product_id: UUID, value: float, currency: str):
-		self.id = id
+		self.family_id = family_id
 		self.product_id = product_id
-		self.value = value
-		self.currency = currency
+		self.url = url

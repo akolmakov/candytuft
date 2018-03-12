@@ -38,7 +38,11 @@ class TaskQueue:
 	def _run(self):
 		def _on_execute(task: Task):
 			logger.debug("Executing task '%s'", task.name)
-			task()
+			try:
+				task()
+				logger.debug("Task '%s' successfully completed", task.name)
+			except:
+				logger.exception("Unexpected exception while executing task '%s' - it is suppressed", task.name)
 
 		# noinspection PyUnusedLocal
 		def _on_task_done(future):

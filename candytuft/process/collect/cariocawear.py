@@ -12,7 +12,7 @@ from candytuft.config import CARIOCA_VENDOR
 from candytuft.config import CARIOCAWEAR_STORE
 
 
-logger = logging.getLogger("candytuft.cariocawear")
+logger = logging.getLogger("candytuft.process.collect.cariocawear")
 
 def _new_family(url: str, json: Dict[str, Any]) -> Family:
 	return Family(id=uuid4(), foreign_id=str(json["id"]), store_id=CARIOCAWEAR_STORE.id, vendor_id=CARIOCA_VENDOR.id, name=json["title"], url=url,

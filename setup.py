@@ -9,6 +9,7 @@ setup(
 	install_requires=[
 		"selenium==3.10.0",
 		"ujson==1.35",
-		"flask=0.12.2"
+		"flask=0.12.2",
+		"boto3==1.6.6"
 	]
 )

@@ -5,8 +5,10 @@ from selenium.webdriver.chrome.options import Options
 
 from flask import Flask
 
-from candytuft.cariocawear import load_families as load_cariocawear_families
-from candytuft.webapi import register_routes as register_web_api_routes
+from candytuft.process.task import TaskQueue
+from candytuft.process.collect.starter import Starter as CollectStarter
+from candytuft.webapi.product import get_web_api as get_product_web_api
+from candytuft.webapi.collect import get_web_api as get_collect_web_api
 from candytuft.config import store_repository
 
 logging.basicConfig()
@@ -20,7 +22,6 @@ options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google
 
 driver = Chrome(executable_path="/Users/akolmakov/chromedriver", chrome_options=options)
 
-
 try:
 	from candytuft.produсt import Family, Product, Image
 	from candytuft.persistence import FilePersistence
@@ -29,20 +30,15 @@ try:
 	product_repository = persistent(type=ProductRepository, persistence=FilePersistence[Product](file_path="/tmp/product.json", to_dict=lambda p: p.to_dict(), from_dict=Product.from_dict))()
 	image_repository = persistent(type=ImageRepository, persistence=FilePersistence[Image](file_path="/tmp/image.json", to_dict=lambda i: i.to_dict(), from_dict=Image.from_dict))()
 
+	collect_starter = CollectStarter(driver=driver, queue=TaskQueue(concurrency_level=1), family_repository=family_repository, product_repository=product_repository,
+		image_repository=image_repository)
+
 	flask = Flask("candytuft")
-	register_web_api_routes(flask, store_repository, family_repository, product_repository, image_repository)
+	product_web_api = get_product_web_api(store_repository, family_repository, product_repository, image_repository)
+	collect_web_api = get_collect_web_api(starter=collect_starter)
+	flask.register_blueprint(product_web_api, url_prefix="/api")
+	flask.register_blueprint(collect_web_api, url_prefix="/api")
 	flask.run(port=8080)
-
-	bundles = load_cariocawear_families(driver)
-	for bundle in bundles:
-		family_repository.put(bundle.family)
-		product_repository.put_all(bundle.products)
-		image_repository.put_all(bundle.images)
-
-	family_repository.flush()
-	product_repository.flush()
-	image_repository.flush()
-
 
 finally:
 	driver.quit()

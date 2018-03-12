@@ -43,11 +43,9 @@ class TaskQueue:
 				logger.debug("Task '%s' successfully completed", task.name)
 			except:
 				logger.exception("Unexpected exception while executing task '%s' - it is suppressed", task.name)
-
-		# noinspection PyUnusedLocal
-		def _on_task_done(future):
-			self._in_progress_count -= 1
-			self._tasks.task_done()
+			finally:
+				self._in_progress_count -= 1
+				self._tasks.task_done()
 
 		while True:
 			try:
@@ -57,6 +55,6 @@ class TaskQueue:
 
 				task = self._tasks.get(timeout=1)
 				self._in_progress_count += 1
-				self._executor.submit(lambda: _on_execute(task)).add_done_callback(_on_task_done)
+				self._executor.submit(lambda: _on_execute(task))
 			except Empty:
 				pass

@@ -7,7 +7,7 @@ from typing import Dict, List, Any
 
 from selenium.webdriver import Remote
 
-from candytuft.produсt import Family, Product, Image, Bundle
+from candytuft.product import Family, Product, Image, Bundle
 from candytuft.config import CARIOCA_VENDOR
 from candytuft.config import CARIOCAWEAR_STORE
 

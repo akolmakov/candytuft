@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from candytuft.produсt import Vendor, Store
+from candytuft.product import Vendor, Store
 from candytuft.repository import StoreRepository
 
 CARIOCAWEAR_STORE = Store(id=UUID("fd1e0b6f-9f35-4261-8bf7-4204bc7cff6a"), short_name="carioca", name="CA-RIO­CA Sunga Co", currency="USD", url="https://cariocawear.com")

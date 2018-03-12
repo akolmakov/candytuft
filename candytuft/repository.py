@@ -2,7 +2,7 @@ from threading import RLock
 from typing import Type, TypeVar, Generic, Dict, List, Optional, Callable
 from uuid import UUID
 
-from candytuft.produсt import Store, Family, Product, Image
+from candytuft.product import Store, Family, Product, Image
 from candytuft.persistence import FilePersistence
 
 T = TypeVar("T")

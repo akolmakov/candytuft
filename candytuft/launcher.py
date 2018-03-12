@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import RotatingFileHandler
 
 from argparse import ArgumentParser
 
@@ -22,7 +23,14 @@ logger = logging.getLogger("candytuft.launcher")
 argument_parser = ArgumentParser()
 argument_parser.add_argument("--chrome-path", nargs="?", required=True, dest="chrome_path")
 argument_parser.add_argument("--chrome-driver-path", nargs="?", required=True, dest="chrome_driver_path")
+argument_parser.add_argument("--log-file-path", nargs="?", type=str, default=None, dest="log_file_path")
 arguments = argument_parser.parse_args()
+
+if arguments.log_file_path:
+	handler = RotatingFileHandler(arguments.log_file_path, maxBytes=2 * 1024 * 1024, backupCount=16)
+	logging.getLogger().addHandler(handler)
+else:
+	pass # output to console
 
 options = Options()
 options.add_argument("--headless")

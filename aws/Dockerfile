@@ -28,4 +28,6 @@ RUN pip3 install --ignore-installed /tmp/${CANDYTUFT_WHEEL}
 
 EXPOSE 8080
 
-CMD candytuft --chrome-path "/usr/bin/google-chrome" --chrome-driver-path "/usr/bin/chromedriver"
+RUN mkdir /var/log/candytuft
+
+CMD candytuft --chrome-path "/usr/bin/google-chrome" --chrome-driver-path "/usr/bin/chromedriver" --log-file-path "/var/log/candytuft/candytuft.log"

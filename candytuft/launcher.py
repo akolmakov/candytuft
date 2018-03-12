@@ -1,5 +1,7 @@
 import logging
 
+from argparse import ArgumentParser
+
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 
@@ -14,15 +16,28 @@ from candytuft.config import store_repository
 logging.basicConfig()
 logging.getLogger("candytuft").setLevel(logging.DEBUG)
 
+logger = logging.getLogger("candytuft.launcher")
+
+
+argument_parser = ArgumentParser()
+argument_parser.add_argument("--chrome-path", nargs="?", required=True, dest="chrome_path")
+argument_parser.add_argument("--chrome-driver-path", nargs="?", required=True, dest="chrome_driver_path")
+arguments = argument_parser.parse_args()
+
 options = Options()
 options.add_argument("--headless")
 options.add_argument("--disable-gpu")
+options.add_argument("--disable-extensions")
+options.add_argument("--no-sandbox")
 options.add_argument("--blink-settings=imagesEnabled=false")
-options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+# "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+options.binary_location = arguments.chrome_path
 
-driver = Chrome(executable_path="/Users/akolmakov/chromedriver", chrome_options=options)
+# "/Users/akolmakov/chromedriver"
+driver = Chrome(executable_path=arguments.chrome_driver_path, chrome_options=options)
 
 def candytuft():
+	logger.info("Launching Candytuft")
 	try:
 		from candytuft.product import Family, Product, Image
 		from candytuft.persistence import FilePersistence
@@ -39,7 +54,9 @@ def candytuft():
 		collect_web_api = get_collect_web_api(starter=collect_starter)
 		flask.register_blueprint(product_web_api, url_prefix="/api")
 		flask.register_blueprint(collect_web_api, url_prefix="/api")
-		flask.run(port=8080)
+
+		logger.info("Web API listens on port 8080")
+		flask.run(host="0.0.0.0", port=8080)
 
 	finally:
 		driver.quit()

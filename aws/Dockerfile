@@ -1,6 +1,10 @@
 FROM ubuntu:17.10
 
-RUN apt-get update -qqy && apt-get -qqy install wget unzip git python3-pip && pip3 install --upgrade pip
+# apt-transport-https ca-certificates gnupg
+
+RUN apt-get update -qqy \
+    && apt-get -qqy install wget unzip git python3-pip \
+    && pip3 install --upgrade pip
 
 ARG CHROME_VERSION="google-chrome-stable"
 RUN wget -qO - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
@@ -22,4 +26,6 @@ ADD ${CANDYTUFT_WHEEL} /tmp
 
 RUN pip3 install --ignore-installed /tmp/${CANDYTUFT_WHEEL}
 
-CMD candytuft
+EXPOSE 8080
+
+CMD candytuft --chrome-path "/usr/bin/google-chrome" --chrome-driver-path "/usr/bin/chromedriver"

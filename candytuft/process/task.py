@@ -43,6 +43,7 @@ class TaskQueue:
 		# noinspection PyUnusedLocal
 		def _on_task_done(future):
 			self._in_progress_count -= 1
+			self._tasks.task_done()
 
 		while True:
 			try:

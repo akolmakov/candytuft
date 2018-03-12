@@ -53,7 +53,7 @@ class Product:
 		self.price = price
 		self.timestamp = timestamp if timestamp else _now_utc()
 
-		self.options: Dict[str, str] = dict()
+		self.options = dict()
 		for name, value in kwargs.items():
 			if type(value) != str:
 				raise ValueError("'{}' must be of str type".format(name))

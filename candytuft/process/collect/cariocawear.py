@@ -30,8 +30,16 @@ def _resolve_tags(products: List[Product]):
 
 
 def _new_product(family_id: UUID, json: Dict[str, Any]) -> Product:
+	options = {"sku": json["sku"]}
+	if not json.get("option3"):
+		options["cut"] = json["option1"]
+		options["fit"] = json["option2"]
+	else:
+		options["color"] = json["option1"]
+		options["cut"] = json["option2"]
+		options["fit"] = json["option3"]
 	product = Product(id=uuid4(), foreign_id=str(json["id"]), family_id=family_id, available=json["available"], price=json["price"] / 100.0, timestamp=None,
-		cut=json["option1"], size=json["option2"], sku=json["sku"])
+		**options)
 	return product
 
 
